@@ -127,37 +127,38 @@ export const WaveformEditor = ({
       setIsLoading(false);
 
       // Set up event listeners
-      peaks.on("segments.add", (segment: any) => {
+      peaks.on("segments.add", (e: any) => {
+        debugger;
         if (isCleanedUp) return;
         setRegions((prev) => {
           const newRegions = [
             ...prev,
             {
-              id: segment.id,
-              start: segment.startTime,
-              end: segment.endTime,
-              color: segment.color,
+              id: e.segments[0].id,
+              start: e.segments[0].startTime,
+              end: e.segments[0].endTime,
+              color: e.segments[0].color,
             },
           ];
           return newRegions;
         });
       });
 
-      peaks.on("segments.dragend", (segment: any) => {
+      peaks.on("segments.dragend", (e: any) => {
         if (isCleanedUp) return;
         setRegions((prev) => {
           const newRegions = prev.map((r) =>
-            r.id === segment.id
-              ? { ...r, start: segment.startTime, end: segment.endTime }
+            r.id === e.segment.id
+              ? { ...r, start: e.segment.startTime, end: e.segment.endTime }
               : r
           );
           return newRegions;
         });
       });
 
-      peaks.on("segments.click", (segment: any) => {
+      peaks.on("segments.click", (e: any) => {
         if (isCleanedUp) return;
-        setSelectedRegion(segment.id);
+        setSelectedRegion(e.segment.id);
       });
 
       // Audio element event listeners

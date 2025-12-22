@@ -17,3 +17,9 @@ export interface HistoryState {
   regions: AudioRegion[];
   timestamp: number;
 }
+
+export interface ExportOptions {
+  prefix: string;
+  startSequence: number;
+  fileType: string;
+}

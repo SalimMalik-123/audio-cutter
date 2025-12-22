@@ -1,11 +1,11 @@
-import JSZip from 'jszip';
-import { AudioRegion, RegionExport } from '../types';
+import JSZip from "jszip";
+import { AudioRegion, RegionExport, ExportOptions } from "../types";
 
 export const exportRegion = async (
   audioBuffer: AudioBuffer,
   region: AudioRegion,
-  originalFileName: string
-): Promise<Blob> => {
+  options: ExportOptions
+): Promise<{ blob: Blob; fileName: string }> => {
   const startSample = Math.floor(region.start * audioBuffer.sampleRate);
   const endSample = Math.floor(region.end * audioBuffer.sampleRate);
   const length = endSample - startSample;
@@ -22,25 +22,39 @@ export const exportRegion = async (
   source.start(0, region.start, region.end - region.start);
 
   const renderedBuffer = await offlineContext.startRendering();
-  return audioBufferToWav(renderedBuffer);
+  const blob = await audioBufferToWav(renderedBuffer);
+
+  const prefix = options.prefix ? `${options.prefix}_` : "";
+  const fileName = `${prefix}${String(options.startSequence).padStart(2, "0")}${
+    options.fileType
+  }`;
+
+  return { blob, fileName };
 };
 
 export const exportAllRegions = async (
   audioBuffer: AudioBuffer,
   regions: AudioRegion[],
-  originalFileName: string
+  options: ExportOptions
 ): Promise<Blob> => {
   const zip = new JSZip();
   const sortedRegions = [...regions].sort((a, b) => a.start - b.start);
 
   for (let i = 0; i < sortedRegions.length; i++) {
     const region = sortedRegions[i];
-    const blob = await exportRegion(audioBuffer, region, originalFileName);
-    const fileName = `clip_${String(i + 1).padStart(2, '0')}.wav`;
+    const currentOptions = {
+      ...options,
+      startSequence: options.startSequence + i,
+    };
+    const { blob, fileName } = await exportRegion(
+      audioBuffer,
+      region,
+      currentOptions
+    );
     zip.file(fileName, blob);
   }
 
-  return zip.generateAsync({ type: 'blob' });
+  return zip.generateAsync({ type: "blob" });
 };
 
 const audioBufferToWav = (buffer: AudioBuffer): Blob => {
@@ -91,12 +105,12 @@ const audioBufferToWav = (buffer: AudioBuffer): Blob => {
     offset++;
   }
 
-  return new Blob([arrayBuffer], { type: 'audio/wav' });
+  return new Blob([arrayBuffer], { type: "audio/wav" });
 };
 
 export const downloadBlob = (blob: Blob, fileName: string) => {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
@@ -107,12 +121,12 @@ export const downloadBlob = (blob: Blob, fileName: string) => {
 
 export const generateRandomColor = (): string => {
   const colors = [
-    'rgba(59, 130, 246, 0.3)',
-    'rgba(16, 185, 129, 0.3)',
-    'rgba(245, 158, 11, 0.3)',
-    'rgba(239, 68, 68, 0.3)',
-    'rgba(139, 92, 246, 0.3)',
-    'rgba(236, 72, 153, 0.3)',
+    "rgba(59, 130, 246, 0.3)",
+    "rgba(16, 185, 129, 0.3)",
+    "rgba(245, 158, 11, 0.3)",
+    "rgba(239, 68, 68, 0.3)",
+    "rgba(139, 92, 246, 0.3)",
+    "rgba(236, 72, 153, 0.3)",
   ];
   return colors[Math.floor(Math.random() * colors.length)];
 };

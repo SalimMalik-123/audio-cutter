@@ -7,7 +7,8 @@ import {
   downloadBlob,
 } from "./utils/audioProcessor";
 import { RotateCcw } from "lucide-react";
-import { AudioRegion } from "./types";
+import { AudioRegion, ExportOptions } from "./types";
+import { ExportOptionsModal } from "./components/ExportOptionsModal";
 
 function App() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -15,6 +16,10 @@ function App() {
   const [regions, setRegions] = useState<AudioRegion[]>([]);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const regionsRef = useRef<AudioRegion[]>([]);
+
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportType, setExportType] = useState<"single" | "all">("single");
+  const [pendingRegionId, setPendingRegionId] = useState<string | null>(null);
 
   useEffect(() => {
     audioBufferRef.current = audioBuffer;
@@ -25,55 +30,16 @@ function App() {
   }, [regions]);
 
   useEffect(() => {
-    const handleExportRegion = async (event: Event) => {
+    const handleExportRegion = (event: Event) => {
       const customEvent = event as CustomEvent<string>;
-      const regionId = customEvent.detail;
-
-      if (!audioBufferRef.current || !audioFile) return;
-
-      const targetRegion = regionsRef.current.find((r) => r.id === regionId);
-
-      if (targetRegion) {
-        try {
-          const blob = await exportRegion(
-            audioBufferRef.current,
-            targetRegion,
-            audioFile.name
-          );
-          const fileName = `${audioFile.name.replace(
-            /\.[^/.]+$/,
-            ""
-          )}_clip_${targetRegion.id.slice(0, 8)}.wav`;
-          downloadBlob(blob, fileName);
-        } catch (error) {
-          console.error("Export failed:", error);
-          alert("Failed to export audio clip. Please try again.");
-        }
-      }
+      setPendingRegionId(customEvent.detail);
+      setExportType("single");
+      setShowExportModal(true);
     };
 
-    const handleExportAll = async () => {
-      if (!audioBufferRef.current || !audioFile) return;
-
-      if (regionsRef.current.length === 0) {
-        alert("No regions to export");
-        return;
-      }
-
-      try {
-        const blob = await exportAllRegions(
-          audioBufferRef.current,
-          regionsRef.current,
-          audioFile.name
-        );
-        downloadBlob(
-          blob,
-          `${audioFile.name.replace(/\.[^/.]+$/, "")}_clips.zip`
-        );
-      } catch (error) {
-        console.error("Export failed:", error);
-        alert("Failed to export audio clips. Please try again.");
-      }
+    const handleExportAll = () => {
+      setExportType("all");
+      setShowExportModal(true);
     };
 
     window.addEventListener("export-region", handleExportRegion);
@@ -97,6 +63,37 @@ function App() {
   const handleReset = () => {
     setAudioFile(null);
     setAudioBuffer(null);
+  };
+
+  const handlePerformExport = async (options: ExportOptions) => {
+    setShowExportModal(false);
+    if (!audioBufferRef.current || !audioFile) return;
+
+    try {
+      if (exportType === "single" && pendingRegionId) {
+        const targetRegion = regionsRef.current.find(
+          (r) => r.id === pendingRegionId
+        );
+        if (targetRegion) {
+          const { blob, fileName } = await exportRegion(
+            audioBufferRef.current,
+            targetRegion,
+            options
+          );
+          downloadBlob(blob, fileName);
+        }
+      } else if (exportType === "all") {
+        const blob = await exportAllRegions(
+          audioBufferRef.current,
+          regionsRef.current,
+          options
+        );
+        downloadBlob(blob, `${options.prefix || "audio"}_clips.zip`);
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export audio. Please try again.");
+    }
   };
 
   if (!audioFile) {
@@ -136,6 +133,16 @@ function App() {
           </p>
         </div>
       </footer>
+
+      {showExportModal && (
+        <ExportOptionsModal
+          title={
+            exportType === "single" ? "Export Selected" : "Export All (ZIP)"
+          }
+          onClose={() => setShowExportModal(false)}
+          onExport={handlePerformExport}
+        />
+      )}
     </div>
   );
 }
