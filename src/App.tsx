@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { FileUpload } from "./components/FileUpload";
-import { WaveformEditor } from "./components/WaveformEditor copy";
+import { WaveformEditor } from "./components/WaveformEditor";
 import {
   exportRegion,
   exportAllRegions,

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import WaveSurfer from "wavesurfer.js";
-import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js";
+import Peaks, { PeaksInstance } from "peaks.js";
 import { AudioRegion, HistoryState } from "../types";
 import { generateRandomColor } from "../utils/audioProcessor";
 import {
@@ -26,18 +25,20 @@ export const WaveformEditor = ({
   onAudioBufferReady,
   onRegionsChange,
 }: WaveformEditorProps) => {
-  const waveformRef = useRef<HTMLDivElement>(null);
-  const wavesurferRef = useRef<WaveSurfer | null>(null);
-  const regionsPluginRef = useRef<RegionsPlugin | null>(null);
-
-  const [zoom, setZoom] = useState(50);
+  const overviewContainerRef = useRef<HTMLDivElement>(null);
+  const zoomviewContainerRef = useRef<HTMLDivElement>(null);
+  const audioElementRef = useRef<HTMLAudioElement>(null);
+  const peaksInstanceRef = useRef<PeaksInstance | null>(null);
+  const [zoom, setZoom] = useState(512); // Peaks.js uses samples per pixel
   const [regions, setRegions] = useState<AudioRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
-  const [containerReady, setContainerReady] = useState(false);
+  const storageKey = useRef<string>(
+    `audio-cutter-regions-${audioFile.name}-${audioFile.size}`
+  );
 
   const saveToHistory = useCallback(
     (newRegions: AudioRegion[]) => {
@@ -52,172 +53,174 @@ export const WaveformEditor = ({
     [history, historyIndex]
   );
 
-  // Set container ready when ref is available
   useEffect(() => {
-    if (!waveformRef.current || !audioFile) return;
+    if (regions.length === 0) return;
+    localStorage.setItem(storageKey.current, JSON.stringify(regions));
+  }, [regions]);
 
-    setIsLoading(true);
-    let destroyed = false;
-
-    const regionsPlugin = RegionsPlugin.create();
-    regionsPluginRef.current = regionsPlugin;
-
-    const wavesurfer = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor: "#4f46e5",
-      progressColor: "#818cf8",
-      cursorColor: "#1e1b4b",
-      height: 200,
-      normalize: true,
-      plugins: [regionsPlugin],
-    });
-
-    wavesurferRef.current = wavesurfer;
-
-    const audioUrl = URL.createObjectURL(audioFile);
-
-    wavesurfer.on("ready", () => {
-      if (destroyed) return;
-      setIsLoading(false);
-
-      const buffer = wavesurfer.getDecodedData();
-      if (buffer) onAudioBufferReady(buffer);
-    });
-
-    wavesurfer.on("error", (err) => {
-      console.error("WaveSurfer error:", err);
-      setIsLoading(false);
-    });
-
-    wavesurfer.load(audioUrl);
-
-    return () => {
-      destroyed = true;
-      URL.revokeObjectURL(audioUrl);
-      wavesurfer.destroy();
-    };
-  }, [audioFile]);
-
+  // Initialize Peaks.js
   useEffect(() => {
-    if (!waveformRef.current || !containerReady) {
-      console.log("Container not ready yet", {
-        hasRef: !!waveformRef.current,
-        containerReady,
-      });
+    if (
+      !overviewContainerRef.current ||
+      !zoomviewContainerRef.current ||
+      !audioElementRef.current ||
+      !audioFile
+    ) {
       return;
     }
 
-    let isCleanedUp = false;
     setIsLoading(true);
-    console.log("Initializing WaveSurfer for file:", audioFile.name);
+    let isCleanedUp = false;
 
-    const regionsPlugin = RegionsPlugin.create();
-    regionsPluginRef.current = regionsPlugin;
+    // Create object URL for audio file
+    const audioUrl = URL.createObjectURL(audioFile);
+    audioElementRef.current.src = audioUrl;
 
-    const wavesurfer = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor: "#4f46e5",
-      progressColor: "#818cf8",
-      cursorColor: "#1e1b4b",
-      barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
-      height: 200,
-      normalize: true,
-      plugins: [regionsPlugin],
-    });
-
-    wavesurferRef.current = wavesurfer;
-
-    wavesurfer.on("ready", () => {
-      if (isCleanedUp) return;
-      console.log("Audio loaded successfully");
-      setIsLoading(false);
-      const buffer = wavesurfer.getDecodedData();
-      if (buffer) {
-        onAudioBufferReady(buffer);
-      }
-    });
-
-    wavesurfer.on("error", (error) => {
-      if (isCleanedUp) return;
-      console.error("WaveSurfer error:", error);
-      setIsLoading(false);
-      alert("Error loading audio file. Please try a different file.");
-    });
-
-    wavesurfer.on("play", () => {
-      if (isCleanedUp) return;
-      setIsPlaying(true);
-    });
-
-    wavesurfer.on("pause", () => {
-      if (isCleanedUp) return;
-      setIsPlaying(false);
-    });
-
-    regionsPlugin.on("region-created", (region) => {
-      if (isCleanedUp) return;
-      setRegions((prev) => {
-        const newRegions = [
-          ...prev,
-          {
-            id: region.id,
-            start: region.start,
-            end: region.end,
-            color: region.color,
-          },
-        ];
-        return newRegions;
-      });
-    });
-
-    regionsPlugin.on("region-updated", (region) => {
-      if (isCleanedUp) return;
-      setRegions((prev) => {
-        const newRegions = prev.map((r) =>
-          r.id === region.id
-            ? { ...r, start: region.start, end: region.end }
-            : r
-        );
-        return newRegions;
-      });
-    });
-
-    regionsPlugin.on("region-clicked", (region, e) => {
-      if (isCleanedUp) return;
-      e?.stopPropagation?.();
-      setSelectedRegion(region.id);
-    });
-
-    const handleClick = () => {
-      if (isCleanedUp) return;
-      setSelectedRegion(null);
+    const options = {
+      overview: {
+        container: overviewContainerRef.current,
+        waveformColor: "#4f46e5",
+        highlightColor: "#818cf8",
+      },
+      zoomview: {
+        container: zoomviewContainerRef.current,
+        waveformColor: "#4f46e5",
+      },
+      mediaElement: audioElementRef.current,
+      webAudio: {
+        audioContext: new AudioContext(),
+      },
+      zoomLevels: [128, 256, 512, 1024, 2048, 4096],
+      keyboard: false,
+      pointMarkerColor: "#1e1b4b",
+      playheadColor: "#1e1b4b",
+      playheadTextColor: "#1e1b4b",
+      segmentOptions: {
+        overlay: true,
+        startMarkerColor: "#4f46e5",
+        endMarkerColor: "#4f46e5",
+      },
     };
 
-    const containerElement = waveformRef.current;
-    containerElement.addEventListener("click", handleClick);
+    Peaks.init(options, (err, peaks) => {
+      if (err || !peaks || isCleanedUp) {
+        console.error("Failed to initialize Peaks.js:", err);
+        setIsLoading(false);
+        if (err) {
+          alert("Error loading audio file. Please try a different file.");
+        }
+        return;
+      }
 
-    // Load the audio file
-    console.log("Loading audio blob...");
-    wavesurfer.loadBlob(audioFile).catch((error) => {
-      if (isCleanedUp) return;
-      console.error("Error loading audio blob:", error);
+      peaksInstanceRef.current = peaks;
+      console.log("Peaks.js initialized successfully");
+
+      // Get audio buffer for compatibility with existing code
+      if (options.webAudio?.audioContext && audioElementRef.current) {
+        const audioContext = options.webAudio.audioContext;
+
+        (async () => {
+          try {
+            const response = await fetch(audioUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            if (!isCleanedUp) {
+              onAudioBufferReady(audioBuffer);
+            }
+          } catch (error) {
+            console.error("Error decoding audio:", error);
+          }
+        })();
+      }
+
       setIsLoading(false);
-      alert("Failed to load audio file. Please try again.");
+      const savedRegions = localStorage.getItem(storageKey.current);
+      if (savedRegions) {
+        const parsedRegions = JSON.parse(savedRegions) as AudioRegion[];
+        console.log("parsed regions", parsedRegions);
+
+        parsedRegions.forEach((region) => {
+          peaks.segments.add({
+            id: region.id,
+            startTime: region.start,
+            endTime: region.end,
+            color: region.color || generateRandomColor(),
+            editable: true,
+          });
+        });
+        setRegions(parsedRegions);
+      }
+
+      // Set up event listeners
+      peaks.on("segments.add", (e: any) => {
+        if (isCleanedUp) return;
+        setRegions((prev) => {
+          const newRegions = [
+            ...prev,
+            {
+              id: e.segments[0].id,
+              start: e.segments[0].startTime,
+              end: e.segments[0].endTime,
+              color: e.segments[0].color,
+            },
+          ];
+          return newRegions;
+        });
+      });
+
+      peaks.on("segments.dragend", (e: any) => {
+        if (isCleanedUp) return;
+        setRegions((prev) => {
+          const newRegions = prev.map((r) =>
+            r.id === e.segment.id
+              ? { ...r, start: e.segment.startTime, end: e.segment.endTime }
+              : r
+          );
+          return newRegions;
+        });
+      });
+
+      peaks.on("segments.click", (e: any) => {
+        if (isCleanedUp) return;
+        setSelectedRegion(e.segment.id);
+      });
+
+      // Audio element event listeners
+      const handlePlay = () => {
+        if (!isCleanedUp) setIsPlaying(true);
+      };
+
+      const handlePause = () => {
+        if (!isCleanedUp) setIsPlaying(false);
+      };
+
+      const audioElement = audioElementRef.current;
+      audioElement?.addEventListener("play", handlePlay);
+      audioElement?.addEventListener("pause", handlePause);
+
+      // Cleanup function
+      return () => {
+        isCleanedUp = true;
+        audioElement?.removeEventListener("play", handlePlay);
+        audioElement?.removeEventListener("pause", handlePause);
+        URL.revokeObjectURL(audioUrl);
+        peaks.destroy();
+      };
     });
 
     return () => {
-      console.log("Cleaning up WaveSurfer");
       isCleanedUp = true;
-      containerElement?.removeEventListener("click", handleClick);
-      wavesurfer.destroy();
+      URL.revokeObjectURL(audioUrl);
+      if (peaksInstanceRef.current) {
+        peaksInstanceRef.current.destroy();
+      }
     };
-  }, [audioFile, onAudioBufferReady, containerReady]);
+  }, [audioFile]);
 
+  // Handle zoom changes
   useEffect(() => {
-    if (wavesurferRef.current && zoom) {
-      wavesurferRef.current.zoom(zoom);
+    if (peaksInstanceRef.current && zoom) {
+      peaksInstanceRef.current.zoom.setZoom(zoom);
     }
   }, [zoom]);
 
@@ -233,45 +236,78 @@ export const WaveformEditor = ({
   }, [regions, onRegionsChange]);
 
   const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 25, 300));
+    setZoom((prev) => Math.max(prev / 2, 128)); // Decrease samples per pixel = zoom in
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 25, 10));
+    setZoom((prev) => Math.min(prev * 2, 4096)); // Increase samples per pixel = zoom out
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    const centiseconds = Math.floor((seconds % 1) * 100);
+    return `${minutes}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}.${centiseconds.toString().padStart(2, "0")}`;
+  };
+
+  const handlePlayRegion = (regionId: string) => {
+    if (!peaksInstanceRef.current) return;
+    const segment = peaksInstanceRef.current.segments.getSegment(regionId);
+    if (segment) {
+      peaksInstanceRef.current.player.playSegment(segment);
+    }
+  };
+
+  const handleRemoveRegion = (regionId: string) => {
+    if (!peaksInstanceRef.current) return;
+    peaksInstanceRef.current.segments.removeById(regionId);
+    setRegions((prev) => {
+      const newRegions = prev.filter((r) => r.id !== regionId);
+      saveToHistory(newRegions);
+      return newRegions;
+    });
+    if (selectedRegion === regionId) {
+      setSelectedRegion(null);
+    }
   };
 
   const handleAddRegion = () => {
-    if (!regionsPluginRef.current || !wavesurferRef.current) return;
+    if (!peaksInstanceRef.current) return;
 
-    const duration = wavesurferRef.current.getDuration();
-    const currentTime = wavesurferRef.current.getCurrentTime();
-    const start = Math.min(currentTime, duration - 2);
+    const view = peaksInstanceRef.current.views.getView("zoomview");
+    if (!view) return;
+
+    const currentTime = peaksInstanceRef.current.player.getCurrentTime();
+    const duration = peaksInstanceRef.current.player.getDuration();
+
+    // Check if playhead is visible in zoomview
+    const viewStartTime = view.getStartTime();
+    const viewEndTime = view.getEndTime();
+
+    let startTime = currentTime;
+
+    // If playhead is not visible, spawn region in center of view
+    if (currentTime < viewStartTime || currentTime > viewEndTime) {
+      startTime = viewStartTime + (viewEndTime - viewStartTime) / 2;
+    }
+
+    // Start slightly before the target time if possible regarding duration
+    const start = Math.min(Math.max(0, startTime), duration - 2);
     const end = Math.min(start + 2, duration);
-
-    regionsPluginRef.current.addRegion({
-      start,
-      end,
+    peaksInstanceRef.current.segments.add({
+      id: `peaks.segment.${regions.length}`,
+      startTime: start,
+      endTime: end,
       color: generateRandomColor(),
-      drag: true,
-      resize: true,
+      editable: true,
     });
   };
 
   const handleDeleteRegion = () => {
-    if (!selectedRegion || !regionsPluginRef.current) return;
-
-    const region = regionsPluginRef.current
-      .getRegions()
-      .find((r) => r.id === selectedRegion);
-    if (region) {
-      region.remove();
-      setRegions((prev) => {
-        const newRegions = prev.filter((r) => r.id !== selectedRegion);
-        saveToHistory(newRegions);
-        return newRegions;
-      });
-      setSelectedRegion(null);
-    }
+    if (!selectedRegion) return;
+    handleRemoveRegion(selectedRegion);
   };
 
   const handleUndo = () => {
@@ -293,18 +329,17 @@ export const WaveformEditor = ({
   };
 
   const restoreState = (state: HistoryState) => {
-    if (!regionsPluginRef.current) return;
+    if (!peaksInstanceRef.current) return;
 
-    regionsPluginRef.current.clearRegions();
+    peaksInstanceRef.current.segments.removeAll();
 
     state.regions.forEach((region) => {
-      regionsPluginRef.current!.addRegion({
+      peaksInstanceRef.current!.segments.add({
         id: region.id,
-        start: region.start,
-        end: region.end,
+        startTime: region.start,
+        endTime: region.end,
         color: region.color || generateRandomColor(),
-        drag: true,
-        resize: true,
+        editable: true,
       });
     });
 
@@ -312,8 +347,12 @@ export const WaveformEditor = ({
   };
 
   const handlePlayPause = () => {
-    if (wavesurferRef.current) {
-      wavesurferRef.current.playPause();
+    if (peaksInstanceRef.current) {
+      if (isPlaying) {
+        peaksInstanceRef.current.player.pause();
+      } else {
+        peaksInstanceRef.current.player.play();
+      }
     }
   };
 
@@ -368,12 +407,12 @@ export const WaveformEditor = ({
             </button>
           </div>
           <div className="text-sm text-gray-600">
-            Zoom: {zoom}x | Regions: {regions.length}
+            Zoom: {zoom} spp | Regions: {regions.length}
           </div>
         </div>
 
         {isLoading && (
-          <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg mb-4">
+          <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-lg mb-4">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
               <p className="text-gray-600">Loading audio file...</p>
@@ -381,17 +420,27 @@ export const WaveformEditor = ({
           </div>
         )}
 
-        {/* {!isLoading && (
+        {/* Hidden audio element */}
+        <audio ref={audioElementRef} style={{ display: "none" }} />
+
+        {/* Overview waveform */}
+        <div className="mb-2">
+          <div className="text-xs text-gray-500 mb-1 font-medium">Overview</div>
           <div
-            ref={waveformRef}
-            className="w-full overflow-x-auto overflow-y-hidden touch-pan-x rounded-lg bg-gray-50 mb-4"
-            style={{ cursor: "pointer" }}
+            ref={overviewContainerRef}
+            className="w-full h-20 rounded-lg bg-gray-50 border border-gray-200"
           />
-        )} */}
-        <div
-          ref={waveformRef}
-          className="w-full h-48 overflow-x-auto rounded-lg bg-gray-50 mb-4"
-        />
+        </div>
+
+        {/* Zoomable waveform */}
+        <div className="mb-4">
+          <div className="text-xs text-gray-500 mb-1 font-medium">Waveform</div>
+          <div
+            ref={zoomviewContainerRef}
+            className="w-full h-48 overflow-x-auto rounded-lg bg-gray-50 border border-gray-200"
+          />
+        </div>
+
         <div className="flex gap-2 items-center">
           <button
             onClick={handlePlayPause}
@@ -414,6 +463,69 @@ export const WaveformEditor = ({
             {selectedRegion
               ? `Selected: ${selectedRegion}`
               : "No region selected"}
+          </div>
+        </div>
+        {/* Regions List */}
+        <div className="flex-1 overflow-y-auto min-h-0 border-t border-gray-100 mt-4 pt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3 px-1">
+            Regions ({regions.length})
+          </h3>
+          <div className="space-y-2">
+            {regions.length === 0 ? (
+              <div className="text-center text-gray-500 py-8 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                No regions added yet. Click "Add Cut" to create one.
+              </div>
+            ) : (
+              regions.map((region) => (
+                <div
+                  key={region.id}
+                  onClick={() => setSelectedRegion(region.id)}
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                    selectedRegion === region.id
+                      ? "bg-blue-50 border-blue-200 shadow-sm"
+                      : "bg-gray-50 border-gray-100 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: region.color }}
+                    />
+                    <div className="text-sm font-medium text-gray-700">
+                      <span className="font-mono">
+                        {formatTime(region.start)}
+                      </span>
+                      <span className="mx-2 text-gray-400">→</span>
+                      <span className="font-mono">
+                        {formatTime(region.end)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayRegion(region.id);
+                      }}
+                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      title="Play Region"
+                    >
+                      <Play size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveRegion(region.id);
+                      }}
+                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      title="Delete Region"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
