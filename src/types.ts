@@ -18,8 +18,15 @@ export interface HistoryState {
   timestamp: number;
 }
 
-export interface ExportOptions {
-  prefix: string;
+// export interface ExportOptions {
+//   prefix: string;
+//   startSequence: number;
+//   fileType: string;
+//   bitrate: any;
+// }
+export type ExportOptions = {
+  fileType: ".wav" | ".mp3";
+  bitrate?: 96 | 128 | 192 | 256;
+  prefix?: string;
   startSequence: number;
-  fileType: string;
-}
+};
