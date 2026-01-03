@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { AudioRegion, RegionExport, ExportOptions } from "../types";
+import { audioBufferToMp3 } from "./audioBufferToMp3";
 
 export const exportRegion = async (
   audioBuffer: AudioBuffer,
@@ -22,9 +23,15 @@ export const exportRegion = async (
   source.start(0, region.start, region.end - region.start);
 
   const renderedBuffer = await offlineContext.startRendering();
-  const blob = await audioBufferToWav(renderedBuffer);
+  const blob =
+    options.fileType === ".mp3"
+      ? audioBufferToMp3(renderedBuffer, options.bitrate ?? 128)
+      : audioBufferToWav(renderedBuffer);
 
   const prefix = options.prefix ? `${options.prefix}_` : "";
+  // const fileName = `${prefix}${String(options.startSequence).padStart(2, "0")}${
+  //   options.fileType
+  // }`;
   const fileName = `${prefix}${String(options.startSequence).padStart(2, "0")}${
     options.fileType
   }`;
