@@ -15,7 +15,7 @@ export const ExportOptionsModal = ({
 }: ExportOptionsModalProps) => {
   const [prefix, setPrefix] = useState("");
   const [startSequence, setStartSequence] = useState(1);
-  const [fileType, setFileType] = useState(".wav");
+  const [fileType, setFileType] = useState<ExportOptions["fileType"]>(".wav");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,13 +82,15 @@ export const ExportOptionsModal = ({
               <select
                 id="type"
                 value={fileType}
-                onChange={(e) => setFileType(e.target.value)}
+                onChange={(e) =>
+                  setFileType(e.target.value as ExportOptions["fileType"])
+                }
                 className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               >
                 <option value=".wav">.wav</option>
                 <option value=".mp3">.mp3</option>
-                <option value=".mp4">.mp4</option>
-                <option value=".m4a">.m4a</option>
+                {/* <option value=".mp4">.mp4</option>
+                <option value=".m4a">.m4a</option> */}
               </select>
             </div>
           </div>
