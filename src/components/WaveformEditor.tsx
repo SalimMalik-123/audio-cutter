@@ -372,41 +372,41 @@ export const WaveformEditor = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-hidden bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div className="flex-1 overflow-hidden bg-white rounded-lg shadow-lg p-2 md:p-3 lg:p-4 mb-4">
         <div className="mb-4 flex flex-wrap gap-2 justify-between items-center">
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={handleZoomOut}
-              className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors touch-manipulation"
+              className="p-2 md:p-2.5 lg:p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors touch-manipulation"
               aria-label="Zoom out"
             >
-              <ZoomOut size={20} />
+              <ZoomOut className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
             </button>
             <button
               onClick={handleZoomIn}
-              className="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors touch-manipulation"
+              className="p-2 md:p-2.5 lg:p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 active:bg-blue-700 transition-colors touch-manipulation"
               aria-label="Zoom in"
             >
-              <ZoomIn size={20} />
+              <ZoomIn className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
             </button>
             <button
               onClick={handleUndo}
               disabled={historyIndex <= 0}
-              className="p-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 active:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors touch-manipulation"
+              className="p-2 md:p-2.5 lg:p-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 active:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors touch-manipulation"
               aria-label="Undo"
             >
-              <Undo2 size={20} />
+              <Undo2 className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
             </button>
             <button
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
-              className="p-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 active:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors touch-manipulation"
+              className="p-2 md:p-2.5 lg:p-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 active:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors touch-manipulation"
               aria-label="Redo"
             >
-              <Redo2 size={20} />
+              <Redo2 className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
             </button>
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-xs md:text-sm text-gray-600">
             Zoom: {zoom} spp | Regions: {regions.length}
           </div>
         </div>
@@ -428,7 +428,7 @@ export const WaveformEditor = ({
           <div className="text-xs text-gray-500 mb-1 font-medium">Overview</div>
           <div
             ref={overviewContainerRef}
-            className="w-full h-20 rounded-lg bg-gray-50 border border-gray-200"
+            className="w-full h-16 md:h-20 rounded-lg bg-gray-50 border border-gray-200"
           />
         </div>
 
@@ -437,7 +437,7 @@ export const WaveformEditor = ({
           <div className="text-xs text-gray-500 mb-1 font-medium">Waveform</div>
           <div
             ref={zoomviewContainerRef}
-            className="w-full h-48 overflow-x-auto rounded-lg bg-gray-50 border border-gray-200"
+            className="w-full h-24 md:h-32 overflow-x-auto rounded-lg bg-gray-50 border border-gray-200"
           />
         </div>
 
@@ -445,21 +445,21 @@ export const WaveformEditor = ({
           <button
             onClick={handlePlayPause}
             disabled={isLoading}
-            className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium touch-manipulation flex items-center gap-2"
+            className="px-3 py-2 md:px-4 md:py-2.5 lg:px-6 lg:py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 active:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium touch-manipulation flex items-center gap-1.5 md:gap-2 text-sm md:text-base lg:text-lg"
           >
             {isPlaying ? (
               <>
-                <Pause size={20} />
+                <Pause className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
                 Pause
               </>
             ) : (
               <>
-                <Play size={20} />
+                <Play className="w-4 h-4 md:w-5 md:h-5 lg:w-5 lg:h-5" />
                 Play
               </>
             )}
           </button>
-          <div className="text-sm text-gray-600">
+          <div className="hidden sm:block text-xs md:text-sm text-gray-600">
             {selectedRegion
               ? `Selected: ${selectedRegion}`
               : "No region selected"}
@@ -480,22 +480,22 @@ export const WaveformEditor = ({
                 <div
                   key={region.id}
                   onClick={() => setSelectedRegion(region.id)}
-                  className={`flex items-center justify-between p-3 rounded-lg border transition-all cursor-pointer ${
+                  className={`flex items-center justify-between p-2 md:p-3 rounded-lg border transition-all cursor-pointer ${
                     selectedRegion === region.id
                       ? "bg-blue-50 border-blue-200 shadow-sm"
                       : "bg-gray-50 border-gray-100 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 md:gap-3">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: region.color }}
                     />
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className="text-xs md:text-sm font-medium text-gray-700">
                       <span className="font-mono">
                         {formatTime(region.start)}
                       </span>
-                      <span className="mx-2 text-gray-400">→</span>
+                      <span className="mx-1 md:mx-2 text-gray-400">→</span>
                       <span className="font-mono">
                         {formatTime(region.end)}
                       </span>
@@ -507,20 +507,20 @@ export const WaveformEditor = ({
                         e.stopPropagation();
                         handlePlayRegion(region.id);
                       }}
-                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      className="p-1.5 md:p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
                       title="Play Region"
                     >
-                      <Play size={16} />
+                      <Play className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRemoveRegion(region.id);
                       }}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      className="p-1.5 md:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                       title="Delete Region"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -530,39 +530,41 @@ export const WaveformEditor = ({
         </div>
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-lg p-4 z-10">
-        <div className="flex flex-wrap gap-3 justify-center max-w-4xl mx-auto">
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 shadow-lg p-2 md:p-3 lg:p-4 z-10">
+        <div className="flex flex-wrap gap-2 md:gap-3 justify-center max-w-4xl mx-auto">
           <button
             onClick={handleAddRegion}
             disabled={isLoading}
-            className="flex items-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-lg touch-manipulation min-h-[56px]"
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-3 lg:px-6 lg:py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base lg:text-lg touch-manipulation min-h-[44px] md:min-h-[48px] lg:min-h-[56px]"
           >
-            <Plus size={24} />
+            <Plus className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
             Add Cut
           </button>
           <button
             onClick={handleDeleteRegion}
             disabled={!selectedRegion}
-            className="flex items-center gap-2 px-6 py-4 bg-red-500 text-white rounded-lg hover:bg-red-600 active:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-lg touch-manipulation min-h-[56px]"
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-3 lg:px-6 lg:py-4 bg-red-500 text-white rounded-lg hover:bg-red-600 active:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base lg:text-lg touch-manipulation min-h-[44px] md:min-h-[48px] lg:min-h-[56px]"
           >
-            <Trash2 size={24} />
+            <Trash2 className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
             Delete Cut
           </button>
           <button
             onClick={handleExportRegion}
             disabled={!selectedRegion}
-            className="flex items-center gap-2 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-lg touch-manipulation min-h-[56px]"
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-3 lg:px-6 lg:py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base lg:text-lg touch-manipulation min-h-[44px] md:min-h-[48px] lg:min-h-[56px]"
           >
-            <Download size={24} />
-            Export Selected
+            <Download className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
+            <span className="hidden sm:inline">Export Selected</span>
+            <span className="sm:hidden">Export</span>
           </button>
           <button
             onClick={handleExportAll}
             disabled={regions.length === 0}
-            className="flex items-center gap-2 px-6 py-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 active:bg-cyan-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-lg touch-manipulation min-h-[56px]"
+            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:px-4 md:py-3 lg:px-6 lg:py-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 active:bg-cyan-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium text-sm md:text-base lg:text-lg touch-manipulation min-h-[44px] md:min-h-[48px] lg:min-h-[56px]"
           >
-            <Download size={24} />
-            Export All (ZIP)
+            <Download className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
+            <span className="hidden sm:inline">Export All (ZIP)</span>
+            <span className="sm:hidden">All (ZIP)</span>
           </button>
         </div>
       </div>

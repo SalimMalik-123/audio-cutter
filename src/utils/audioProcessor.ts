@@ -32,7 +32,7 @@ export const exportRegion = async (
   // const fileName = `${prefix}${String(options.startSequence).padStart(2, "0")}${
   //   options.fileType
   // }`;
-  const fileName = `${prefix}${String(options.startSequence).padStart(2, "0")}${
+  const fileName = `${prefix}${String(options.startSequence)}${
     options.fileType
   }`;
 
