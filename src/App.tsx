@@ -66,6 +66,7 @@ function App() {
   };
 
   const handlePerformExport = async (options: ExportOptions) => {
+    debugger;
     setShowExportModal(false);
     if (!audioBufferRef.current || !audioFile) return;
 
@@ -88,7 +89,7 @@ function App() {
           regionsRef.current,
           options
         );
-        downloadBlob(blob, `${options.prefix || "audio"}_clips.zip`);
+        downloadBlob(blob, `${options.filename}.zip`);
       }
     } catch (error) {
       console.error("Export failed:", error);

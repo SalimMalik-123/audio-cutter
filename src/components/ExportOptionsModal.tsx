@@ -16,10 +16,11 @@ export const ExportOptionsModal = ({
   const [prefix, setPrefix] = useState("");
   const [startSequence, setStartSequence] = useState(1);
   const [fileType, setFileType] = useState<ExportOptions["fileType"]>(".wav");
+  const [filename, setFilename] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onExport({ prefix, startSequence, fileType });
+    onExport({ prefix, startSequence, fileType, filename });
   };
 
   return (
@@ -36,6 +37,23 @@ export const ExportOptionsModal = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label
+              htmlFor="filename"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              File Name
+            </label>
+            <input
+              type="text"
+              id="filename"
+              required
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              placeholder="file name"
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            />
+          </div>
           <div>
             <label
               htmlFor="prefix"

@@ -29,4 +29,5 @@ export type ExportOptions = {
   bitrate?: 96 | 128 | 192 | 256;
   prefix?: string;
   startSequence: number;
+  filename: string;
 };
